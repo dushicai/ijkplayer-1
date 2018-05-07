@@ -32,7 +32,7 @@ typedef struct ANativeWindow   ANativeWindow;
 typedef struct SDL_AMediaCodec SDL_AMediaCodec;
 
 SDL_Vout *SDL_VoutAndroid_CreateForANativeWindow();
-void SDL_VoutAndroid_SetNativeWindow(SDL_Vout *vout, ANativeWindow *native_window);
+void SDL_VoutAndroid_SetNativeWindow(SDL_Vout *vout, ANativeWindow *native_window,int index);
 void             SDL_VoutAndroid_setAMediaCodec(SDL_Vout *vout, SDL_AMediaCodec *acodec);
 SDL_AMediaCodec *SDL_VoutAndroid_peekAMediaCodec(SDL_Vout *vout);
 void             SDL_VoutAndroid_invalidateAllBuffers(SDL_Vout *vout);

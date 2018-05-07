@@ -108,6 +108,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static final int PROP_FLOAT_VIDEO_DECODE_FRAMES_PER_SECOND       = 10001;
     public static final int PROP_FLOAT_VIDEO_OUTPUT_FRAMES_PER_SECOND       = 10002;
     public static final int FFP_PROP_FLOAT_PLAYBACK_RATE                    = 10003;
+    public static final int FFP_PROP_FLOAT_PITCH_RATE                       = 11000;
     public static final int FFP_PROP_FLOAT_DROP_FRAME_RATE                  = 10007;
 
     public static final int FFP_PROP_INT64_SELECTED_VIDEO_STREAM            = 20001;
@@ -156,7 +157,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     @AccessedByNative
     private int mListenerContext;
 
-    private SurfaceHolder mSurfaceHolder;
+    private SurfaceHolder mSurfaceHolder[] = new SurfaceHolder[2];
     private EventHandler mEventHandler;
     private PowerManager.WakeLock mWakeLock = null;
     private boolean mScreenOnWhilePlaying;
@@ -166,7 +167,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     private int mVideoHeight;
     private int mVideoSarNum;
     private int mVideoSarDen;
-
+    private int mSurfaceIndex = 1;
     private String mDataSource;
 
     /**
@@ -254,7 +255,12 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      * Update the IjkMediaPlayer SurfaceTexture. Call after setting a new
      * display surface.
      */
-    private native void _setVideoSurface(Surface surface);
+    private native void _setVideoSurface(Surface surface,int index);
+
+
+    public void setSurfaceIndex(int idx) {
+        mSurfaceIndex = idx;
+    }
 
     /**
      * Sets the {@link SurfaceHolder} to use for displaying the video portion of
@@ -271,16 +277,17 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
      */
     @Override
     public void setDisplay(SurfaceHolder sh) {
-        mSurfaceHolder = sh;
+        mSurfaceHolder[mSurfaceIndex] = sh;
         Surface surface;
         if (sh != null) {
             surface = sh.getSurface();
         } else {
             surface = null;
         }
-        _setVideoSurface(surface);
+        _setVideoSurface(surface,mSurfaceIndex);
         updateSurfaceScreenOn();
     }
+
 
     /**
      * Sets the {@link Surface} to be used as the sink for the video portion of
@@ -307,8 +314,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
             DebugLog.w(TAG,
                     "setScreenOnWhilePlaying(true) is ineffective for Surface");
         }
-        mSurfaceHolder = null;
-        _setVideoSurface(surface);
+        mSurfaceHolder[mSurfaceIndex] = null;
+        _setVideoSurface(surface,mSurfaceIndex);
         updateSurfaceScreenOn();
     }
 
@@ -488,6 +495,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
         _setDataSource(mediaDataSource);
     }
 
+
     public void setAndroidIOCallback(IAndroidIO androidIO)
             throws IllegalArgumentException, SecurityException, IllegalStateException {
         _setAndroidIOCallback(androidIO);
@@ -566,7 +574,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     @Override
     public void setScreenOnWhilePlaying(boolean screenOn) {
         if (mScreenOnWhilePlaying != screenOn) {
-            if (screenOn && mSurfaceHolder == null) {
+            if (screenOn && mSurfaceHolder[0] == null && mSurfaceHolder[1] == null) {
                 DebugLog.w(TAG,
                         "setScreenOnWhilePlaying(true) is ineffective without a SurfaceHolder");
             }
@@ -589,8 +597,11 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     }
 
     private void updateSurfaceScreenOn() {
-        if (mSurfaceHolder != null) {
-            mSurfaceHolder.setKeepScreenOn(mScreenOnWhilePlaying && mStayAwake);
+        if (mSurfaceHolder[0] != null) {
+            mSurfaceHolder[0].setKeepScreenOn(mScreenOnWhilePlaying && mStayAwake);
+        }
+        if (mSurfaceHolder[1] != null) {
+            mSurfaceHolder[1].setKeepScreenOn(mScreenOnWhilePlaying && mStayAwake);
         }
     }
 
@@ -752,6 +763,14 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     public float getSpeed(float speed) {
         return _getPropertyFloat(FFP_PROP_FLOAT_PLAYBACK_RATE, .0f);
+    }
+
+    public void setPitch(float pitch) {
+        _setPropertyFloat(FFP_PROP_FLOAT_PITCH_RATE, pitch);
+    }
+
+    public float getPitch(float pitch) {
+        return _getPropertyFloat(FFP_PROP_FLOAT_PITCH_RATE, .0f);
     }
 
     public int getVideoDecoder() {

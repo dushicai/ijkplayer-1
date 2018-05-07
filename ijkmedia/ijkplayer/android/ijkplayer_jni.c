@@ -241,13 +241,13 @@ LABEL_RETURN:
 }
 
 static void
-IjkMediaPlayer_setVideoSurface(JNIEnv *env, jobject thiz, jobject jsurface)
+IjkMediaPlayer_setVideoSurface(JNIEnv *env, jobject thiz, jobject jsurface,jint index)
 {
     MPTRACE("%s\n", __func__);
     IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
     JNI_CHECK_GOTO(mp, env, NULL, "mpjni: setVideoSurface: null mp", LABEL_RETURN);
 
-    ijkmp_android_set_surface(env, mp, jsurface);
+    ijkmp_android_set_surface(env, mp, jsurface,index);
 
 LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
@@ -369,7 +369,9 @@ IjkMediaPlayer_release(JNIEnv *env, jobject thiz)
     if (!mp)
         return;
 
-    ijkmp_android_set_surface(env, mp, NULL);
+    ijkmp_android_set_surface(env, mp, NULL,0);
+    ijkmp_android_set_surface(env, mp, NULL,1);
+
     // explicit shutdown mp, in case it is not the last mp-ref here
     ijkmp_shutdown(mp);
     //only delete weak_thiz at release
@@ -1143,7 +1145,7 @@ static JNINativeMethod g_methods[] = {
     { "_setDataSource",         "(Ltv/danmaku/ijk/media/player/misc/IMediaDataSource;)V", (void *)IjkMediaPlayer_setDataSourceCallback },
     { "_setAndroidIOCallback",  "(Ltv/danmaku/ijk/media/player/misc/IAndroidIO;)V", (void *)IjkMediaPlayer_setAndroidIOCallback },
 
-    { "_setVideoSurface",       "(Landroid/view/Surface;)V", (void *) IjkMediaPlayer_setVideoSurface },
+    { "_setVideoSurface",       "(Landroid/view/Surface;I)V", (void *) IjkMediaPlayer_setVideoSurface },
     { "_prepareAsync",          "()V",      (void *) IjkMediaPlayer_prepareAsync },
     { "_start",                 "()V",      (void *) IjkMediaPlayer_start },
     { "_stop",                  "()V",      (void *) IjkMediaPlayer_stop },

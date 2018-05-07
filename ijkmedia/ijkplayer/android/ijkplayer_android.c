@@ -54,23 +54,23 @@ fail:
     return NULL;
 }
 
-void ijkmp_android_set_surface_l(JNIEnv *env, IjkMediaPlayer *mp, jobject android_surface)
+void ijkmp_android_set_surface_l(JNIEnv *env, IjkMediaPlayer *mp, jobject android_surface,jint index)
 {
     if (!mp || !mp->ffplayer || !mp->ffplayer->vout)
         return;
 
-    SDL_VoutAndroid_SetAndroidSurface(env, mp->ffplayer->vout, android_surface);
+    SDL_VoutAndroid_SetAndroidSurface(env, mp->ffplayer->vout, android_surface,index);
     ffpipeline_set_surface(env, mp->ffplayer->pipeline, android_surface);
 }
 
-void ijkmp_android_set_surface(JNIEnv *env, IjkMediaPlayer *mp, jobject android_surface)
+void ijkmp_android_set_surface(JNIEnv *env, IjkMediaPlayer *mp, jobject android_surface,jint index)
 {
     if (!mp)
         return;
 
     MPTRACE("ijkmp_set_android_surface(surface=%p)", (void*)android_surface);
     pthread_mutex_lock(&mp->mutex);
-    ijkmp_android_set_surface_l(env, mp, android_surface);
+    ijkmp_android_set_surface_l(env, mp, android_surface,index);
     pthread_mutex_unlock(&mp->mutex);
     MPTRACE("ijkmp_set_android_surface(surface=%p)=void", (void*)android_surface);
 }

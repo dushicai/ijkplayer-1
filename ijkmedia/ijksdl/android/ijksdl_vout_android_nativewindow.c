@@ -82,7 +82,7 @@ static void SDL_AMediaCodecBufferProxy_invalidate(SDL_AMediaCodecBufferProxy *pr
 }
 
 typedef struct SDL_Vout_Opaque {
-    ANativeWindow   *native_window;
+    ANativeWindow   *native_window[2];
     SDL_AMediaCodec *acodec;
     int              null_native_window_warned; // reduce log for null window
     int              next_buffer_id;
@@ -90,7 +90,7 @@ typedef struct SDL_Vout_Opaque {
     ISDL_Array       overlay_manager;
     ISDL_Array       overlay_pool;
 
-    IJK_EGL         *egl;
+    IJK_EGL         *egl[2];
 } SDL_Vout_Opaque;
 
 static SDL_VoutOverlay *func_create_overlay_l(int width, int height, int frame_format, SDL_Vout *vout)
@@ -126,12 +126,18 @@ static void func_free_l(SDL_Vout *vout)
         ISDL_Array__clear(&opaque->overlay_pool);
         ISDL_Array__clear(&opaque->overlay_manager);
 
-        if (opaque->native_window) {
-            ANativeWindow_release(opaque->native_window);
-            opaque->native_window = NULL;
+        if (opaque->native_window[0]) {
+            ANativeWindow_release(opaque->native_window[0]);
+            opaque->native_window[0] = NULL;
+        }
+        if (opaque->native_window[1]) {
+            ANativeWindow_release(opaque->native_window[1]);
+            opaque->native_window[1] = NULL;
         }
 
-        IJK_EGL_freep(&opaque->egl);
+        IJK_EGL_freep(&opaque->egl[0]);
+        IJK_EGL_freep(&opaque->egl[1]);
+
 
         SDL_AMediaCodec_decreaseReferenceP(&opaque->acodec);
     }
@@ -139,10 +145,10 @@ static void func_free_l(SDL_Vout *vout)
     SDL_Vout_FreeInternal(vout);
 }
 
-static int func_display_overlay_l(SDL_Vout *vout, SDL_VoutOverlay *overlay)
+static int func_display_overlay_l(SDL_Vout *vout, SDL_VoutOverlay *overlay ,int index)
 {
     SDL_Vout_Opaque *opaque = vout->opaque;
-    ANativeWindow *native_window = opaque->native_window;
+    ANativeWindow *native_window = opaque->native_window[index];
 
     if (!native_window) {
         if (!opaque->null_native_window_warned) {
@@ -167,36 +173,37 @@ static int func_display_overlay_l(SDL_Vout *vout, SDL_VoutOverlay *overlay)
     switch(overlay->format) {
     case SDL_FCC__AMC: {
         // only ANativeWindow support
-        IJK_EGL_terminate(opaque->egl);
+        IJK_EGL_terminate(opaque->egl[index]);
         return SDL_VoutOverlayAMediaCodec_releaseFrame_l(overlay, NULL, true);
     }
     case SDL_FCC_RV24:
     case SDL_FCC_I420:
     case SDL_FCC_I444P10LE: {
         // only GLES support
-        if (opaque->egl)
-            return IJK_EGL_display(opaque->egl, native_window, overlay);
+        if (opaque->egl[index])
+            return IJK_EGL_display(opaque->egl[index], native_window, overlay);
         break;
     }
     case SDL_FCC_YV12:
     case SDL_FCC_RV16:
     case SDL_FCC_RV32: {
         // both GLES & ANativeWindow support
-        if (vout->overlay_format == SDL_FCC__GLES2 && opaque->egl)
-            return IJK_EGL_display(opaque->egl, native_window, overlay);
+        if (vout->overlay_format == SDL_FCC__GLES2 && opaque->egl[index])
+            return IJK_EGL_display(opaque->egl[index], native_window, overlay);
         break;
     }
     }
 
     // fallback to ANativeWindow
-    IJK_EGL_terminate(opaque->egl);
+    IJK_EGL_terminate(opaque->egl[index]);
     return SDL_Android_NativeWindow_display_l(native_window, overlay); 
 }
 
 static int func_display_overlay(SDL_Vout *vout, SDL_VoutOverlay *overlay)
 {
     SDL_LockMutex(vout->mutex);
-    int retval = func_display_overlay_l(vout, overlay);
+    int retval = func_display_overlay_l(vout, overlay,0);
+    func_display_overlay_l(vout, overlay,1);
     SDL_UnlockMutex(vout->mutex);
     return retval;
 }
@@ -212,14 +219,18 @@ SDL_Vout *SDL_VoutAndroid_CreateForANativeWindow()
         return NULL;
 
     SDL_Vout_Opaque *opaque = vout->opaque;
-    opaque->native_window = NULL;
+    opaque->native_window[0] = NULL;
+    opaque->native_window[1] = NULL;
+
     if (ISDL_Array__init(&opaque->overlay_manager, 32))
         goto fail;
     if (ISDL_Array__init(&opaque->overlay_pool, 32))
         goto fail;
 
-    opaque->egl = IJK_EGL_create();
-    if (!opaque->egl)
+    opaque->egl[0] = IJK_EGL_create();
+    opaque->egl[1] = IJK_EGL_create();
+
+    if (!opaque->egl[0] || !opaque->egl[1])
         goto fail;
 
     vout->opaque_class    = &g_nativewindow_class;
@@ -252,12 +263,12 @@ void SDL_VoutAndroid_invalidateAllBuffers(SDL_Vout *vout)
     SDL_UnlockMutex(vout->mutex);
 }
 
-static void SDL_VoutAndroid_SetNativeWindow_l(SDL_Vout *vout, ANativeWindow *native_window)
+static void SDL_VoutAndroid_SetNativeWindow_l(SDL_Vout *vout, ANativeWindow *native_window,int index)
 {
     AMCTRACE("%s(%p, %p)\n", __func__, vout, native_window);
     SDL_Vout_Opaque *opaque = vout->opaque;
 
-    if (opaque->native_window == native_window) {
+    if (opaque->native_window[index] == native_window) {
         if (native_window == NULL) {
             // always invalidate buffers, if native_window is changed
             SDL_VoutAndroid_invalidateAllBuffers_l(vout);
@@ -265,23 +276,23 @@ static void SDL_VoutAndroid_SetNativeWindow_l(SDL_Vout *vout, ANativeWindow *nat
         return;
     }
 
-    IJK_EGL_terminate(opaque->egl);
+    IJK_EGL_terminate(opaque->egl[index]);
     SDL_VoutAndroid_invalidateAllBuffers_l(vout);
 
-    if (opaque->native_window)
-        ANativeWindow_release(opaque->native_window);
+    if (opaque->native_window[index])
+        ANativeWindow_release(opaque->native_window[index]);
 
     if (native_window)
         ANativeWindow_acquire(native_window);
 
-    opaque->native_window = native_window;
+    opaque->native_window[index] = native_window;
     opaque->null_native_window_warned = 0;
 }
 
-void SDL_VoutAndroid_SetNativeWindow(SDL_Vout *vout, ANativeWindow *native_window)
+void SDL_VoutAndroid_SetNativeWindow(SDL_Vout *vout, ANativeWindow *native_window,int index)
 {
     SDL_LockMutex(vout->mutex);
-    SDL_VoutAndroid_SetNativeWindow_l(vout, native_window);
+    SDL_VoutAndroid_SetNativeWindow_l(vout, native_window,index);
     SDL_UnlockMutex(vout->mutex);
 }
 

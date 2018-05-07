@@ -138,6 +138,13 @@ int64_t get_valid_channel_layout(int64_t channel_layout, int channels)
 }
 #endif
 
+
+inline static uint64_t get_now_time() {
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
 static void free_picture(Frame *vp);
 
 static int packet_queue_put_private(PacketQueue *q, AVPacket *pkt)
@@ -2579,14 +2586,14 @@ reload:
         int bytes_per_sample = av_get_bytes_per_sample(is->audio_tgt.fmt);
         resampled_data_size = len2 * is->audio_tgt.channels * bytes_per_sample;
 #if defined(__ANDROID__)
-        if (ffp->soundtouch_enable && ffp->pf_playback_rate != 1.0f && !is->abort_request) {
+        if (ffp->soundtouch_enable && (ffp->pf_playback_rate != 1.0f || ffp->pf_pitch_rate != 1.0f )&& !is->abort_request) {
             av_fast_malloc(&is->audio_new_buf, &is->audio_new_buf_size, out_size * translate_time);
             for (int i = 0; i < (resampled_data_size / 2); i++)
             {
                 is->audio_new_buf[i] = (is->audio_buf1[i * 2] | (is->audio_buf1[i * 2 + 1] << 8));
             }
 
-            int ret_len = ijk_soundtouch_translate(is->handle, is->audio_new_buf, (float)(ffp->pf_playback_rate), (float)(1.0f/ffp->pf_playback_rate),
+            int ret_len = ijk_soundtouch_translate(is->handle, is->audio_new_buf, (float)(ffp->pf_playback_rate), (float)(ffp->pf_pitch_rate/ ffp->pf_playback_rate),
                     resampled_data_size / 2, bytes_per_sample, is->audio_tgt.channels, af->frame->sample_rate);
             if (ret_len > 0) {
                 is->audio_buf = (uint8_t*)is->audio_new_buf;
@@ -2633,10 +2640,11 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
     FFPlayer *ffp = opaque;
     VideoState *is = ffp->is;
     int audio_size, len1;
-    if (!ffp || !is) {
+    if (!ffp || !is  || get_now_time() - ffp->last_audio_open_tm < 100) {
         memset(stream, 0, len);
         return;
     }
+
 
     ffp->audio_callback_time = av_gettime_relative();
 
@@ -2940,6 +2948,9 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
         }
         if ((ret = decoder_start(&is->auddec, audio_thread, ffp, "ff_audio_dec")) < 0)
             goto out;
+
+        ffp->last_audio_open_tm = get_now_time();
+        SDL_AoutFlushAudio(ffp->aout);
         SDL_AoutPauseAudio(ffp->aout, 0);
         break;
     case AVMEDIA_TYPE_VIDEO:
@@ -3139,7 +3150,7 @@ static int read_thread(void *arg)
     if (ffp->genpts)
         ic->flags |= AVFMT_FLAG_GENPTS;
 
-    av_format_inject_global_side_data(ic);
+    //av_format_inject_global_side_data(ic);
     //
     //AVDictionary **opts;
     //int orig_nb_streams;
@@ -3383,7 +3394,7 @@ static int read_thread(void *arg)
                     packet_queue_flush(&is->audioq);
                     packet_queue_put(&is->audioq, &flush_pkt);
                     // TODO: clear invaild audio data
-                    // SDL_AoutFlushAudio(ffp->aout);
+                    SDL_AoutFlushAudio(ffp->aout);
                 }
                 if (is->subtitle_stream >= 0) {
                     packet_queue_flush(&is->subtitleq);
@@ -4788,6 +4799,15 @@ void ffp_set_playback_rate(FFPlayer *ffp, float rate)
     ffp->pf_playback_rate_changed = 1;
 }
 
+void ffp_set_pitch_rate(FFPlayer *ffp, float rate)
+{
+    if (!ffp)
+        return;
+
+    av_log(ffp, AV_LOG_INFO, "Pitch_rate: %f\n", rate);
+    ffp->pf_pitch_rate = rate;
+}
+
 void ffp_set_playback_volume(FFPlayer *ffp, float volume)
 {
     if (!ffp)
@@ -4857,6 +4877,7 @@ int ffp_set_stream_selected(FFPlayer *ffp, int stream, int selected)
                 av_log(ffp, AV_LOG_ERROR, "select invalid stream %d of video type %d\n", stream, codecpar->codec_type);
                 return -1;
         }
+
         return stream_component_open(ffp, stream);
     } else {
         switch (codecpar->codec_type) {
@@ -4889,6 +4910,8 @@ float ffp_get_property_float(FFPlayer *ffp, int id, float default_value)
             return ffp ? ffp->stat.vfps : default_value;
         case FFP_PROP_FLOAT_PLAYBACK_RATE:
             return ffp ? ffp->pf_playback_rate : default_value;
+        case FFP_PROP_FLOAT_PITCH_RATE:
+             return ffp ? ffp->pf_pitch_rate : default_value;
         case FFP_PROP_FLOAT_AVDELAY:
             return ffp ? ffp->stat.avdelay : default_value;
         case FFP_PROP_FLOAT_AVDIFF:
@@ -4910,6 +4933,9 @@ void ffp_set_property_float(FFPlayer *ffp, int id, float value)
             break;
         case FFP_PROP_FLOAT_PLAYBACK_VOLUME:
             ffp_set_playback_volume(ffp, value);
+            break;
+        case FFP_PROP_FLOAT_PITCH_RATE:
+            ffp_set_pitch_rate(ffp, value);
             break;
         default:
             return;

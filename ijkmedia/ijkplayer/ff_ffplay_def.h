@@ -87,9 +87,9 @@
 #ifdef FFP_MERGE
 #define MIN_FRAMES 25
 #endif
-#define DEFAULT_MIN_FRAMES  50000
 #define MIN_MIN_FRAMES      2
 #define MAX_MIN_FRAMES      50000
+#define DEFAULT_MIN_FRAMES  MIN_MIN_FRAMES
 #define MIN_FRAMES (ffp->dcc.min_frames)
 #define EXTERNAL_CLOCK_MIN_FRAMES 2
 #define EXTERNAL_CLOCK_MAX_FRAMES 10
@@ -697,6 +697,7 @@ typedef struct FFPlayer {
     int         vf_changed;
     int         af_changed;
     float       pf_playback_rate;
+    float       pf_pitch_rate;
     int         pf_playback_rate_changed;
     float       pf_playback_volume;
     int         pf_playback_volume_changed;
@@ -720,6 +721,8 @@ typedef struct FFPlayer {
     char *mediacodec_default_name;
     int ijkmeta_delay_init;
     int render_wait_start;
+    //add by xzl
+    int64_t last_audio_open_tm;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))
@@ -840,6 +843,7 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     ffp->vf_changed                     = 0;
     ffp->af_changed                     = 0;
     ffp->pf_playback_rate               = 1.0f;
+    ffp->pf_pitch_rate                  = 1.0f;
     ffp->pf_playback_rate_changed       = 0;
     ffp->pf_playback_volume             = 1.0f;
     ffp->pf_playback_volume_changed     = 0;
@@ -853,6 +857,8 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     ffp->ijkio_inject_opaque = NULL;
     ffp_reset_statistic(&ffp->stat);
     ffp_reset_demux_cache_control(&ffp->dcc);
+    //add by xzl
+    ffp->last_audio_open_tm = 0;
 }
 
 inline static void ffp_notify_msg1(FFPlayer *ffp, int what) {
