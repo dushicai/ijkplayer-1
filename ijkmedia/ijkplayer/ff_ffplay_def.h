@@ -723,6 +723,7 @@ typedef struct FFPlayer {
     int render_wait_start;
     //add by xzl
     int64_t last_audio_open_tm;
+    int channel_config;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))
@@ -859,6 +860,7 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     ffp_reset_demux_cache_control(&ffp->dcc);
     //add by xzl
     ffp->last_audio_open_tm = 0;
+    ffp->channel_config = 0;
 }
 
 inline static void ffp_notify_msg1(FFPlayer *ffp, int what) {

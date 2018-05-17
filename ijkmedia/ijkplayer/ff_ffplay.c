@@ -2639,8 +2639,10 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
 {
     FFPlayer *ffp = opaque;
     VideoState *is = ffp->is;
-    int audio_size, len1;
-    if (!ffp || !is  || get_now_time() - ffp->last_audio_open_tm < 100) {
+    int audio_size, len1,origin_len = len;
+    Uint8 *origin_stream = stream;
+
+    if (!ffp || !is  || get_now_time() - ffp->last_audio_open_tm < 20) {
         memset(stream, 0, len);
         return;
     }
@@ -2699,6 +2701,26 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
         stream += len1;
         is->audio_buf_index += len1;
     }
+    
+    
+    if(is->audio_tgt.channels == 2 && ffp->channel_config != 0){
+        //双声道并且需要制定输出单一声道
+        int sample_size =  av_get_bytes_per_sample(is->audio_tgt.fmt);
+        Uint8 *sample_ptr0,*sample_ptr1;
+        //av_log(NULL, AV_LOG_ERROR, "##########%d %d %d %d %d\n",is->audio_tgt.channels,ffp->channel_config,sample_size,is->audio_tgt.fmt,origin_len);
+
+        for(int i = 0; i < origin_len; ){
+            sample_ptr0 = origin_stream + i;
+            sample_ptr1 = origin_stream + i + sample_size;
+            if(ffp->channel_config == 1){
+                memcpy(sample_ptr0,sample_ptr1,sample_size);
+            }else{
+                memcpy(sample_ptr1,sample_ptr0,sample_size);
+            }
+            i += (sample_size * 2);
+        }
+    }
+
     is->audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
     /* Let's assume the audio driver that is used by SDL has two periods. */
     if (!isnan(is->audio_clock)) {
@@ -5028,6 +5050,11 @@ int64_t ffp_get_property_int64(FFPlayer *ffp, int id, int64_t default_value)
             if (!ffp)
                 return default_value;
             return ffp->stat.logical_file_size;
+
+        case FFP_PROP_INT64_CHANNEL_CONFIG:
+            if (!ffp)
+                return default_value;
+            return ffp->channel_config;
         default:
             return default_value;
     }
@@ -5050,6 +5077,10 @@ void ffp_set_property_int64(FFPlayer *ffp, int id, int64_t value)
         case FFP_PROP_INT64_IMMEDIATE_RECONNECT:
             if (ffp) {
                 ijkio_manager_immediate_reconnect(ffp->ijkio_manager_ctx);
+            }
+        case FFP_PROP_INT64_CHANNEL_CONFIG:
+            if(ffp){
+                ffp->channel_config = value;
             }
         default:
             break;

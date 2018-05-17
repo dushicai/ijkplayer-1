@@ -141,6 +141,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static final int FFP_PROP_INT64_TCP_SPEED                        = 20200;
     public static final int FFP_PROP_INT64_LATEST_SEEK_LOAD_DURATION        = 20300;
     public static final int FFP_PROP_INT64_IMMEDIATE_RECONNECT              = 20211;
+    public static final int FFP_PROP_INT64_CHANNEL_CONFIG                   = 21000;
+
     //----------------------------------------
 
     @AccessedByNative
@@ -773,6 +775,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
         return _getPropertyFloat(FFP_PROP_FLOAT_PITCH_RATE, .0f);
     }
 
+
     public int getVideoDecoder() {
         return (int)_getPropertyLong(FFP_PROP_INT64_VIDEO_DECODER, FFP_PROPV_DECODER_UNKNOWN);
     }
@@ -783,6 +786,14 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     public float getVideoDecodeFramesPerSecond() {
         return _getPropertyFloat(PROP_FLOAT_VIDEO_DECODE_FRAMES_PER_SECOND, 0.0f);
+    }
+
+    public void setChannelConfig(int config) {
+        _setPropertyLong(FFP_PROP_INT64_CHANNEL_CONFIG, config);
+    }
+
+    public float getChannelConfig() {
+        return _getPropertyLong(FFP_PROP_INT64_CHANNEL_CONFIG, 0);
     }
 
     public long getVideoCachedDuration() {
