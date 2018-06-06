@@ -2867,6 +2867,20 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
         case AVMEDIA_TYPE_VIDEO   : is->last_video_stream    = stream_index; forced_codec_name = ffp->video_codec_name; break;
         default: break;
     }
+    const char *meidiacodec_name = NULL;
+    switch(avctx->codec_id){
+        case AV_CODEC_ID_H264 : meidiacodec_name = "h264_mediacodec";break;
+        case AV_CODEC_ID_HEVC : meidiacodec_name = "hevc_mediacodec";break;
+        case AV_CODEC_ID_MPEG2VIDEO : meidiacodec_name = "mpeg2_mediacodec";break;
+        case AV_CODEC_ID_MPEG4 : meidiacodec_name = "mpeg4_mediacodec";break;
+        case AV_CODEC_ID_VP8 : meidiacodec_name = "vp8_mediacodec";break;
+        case AV_CODEC_ID_VP9 : meidiacodec_name = "vp9_mediacodec";break;
+        default : break;
+    }
+    if(meidiacodec_name){
+        codec = avcodec_find_decoder_by_name(meidiacodec_name);
+        av_log(NULL, AV_LOG_ERROR,"启用MediaCodec硬件解码: %s\n", meidiacodec_name);
+    }
     if (forced_codec_name)
         codec = avcodec_find_decoder_by_name(forced_codec_name);
     if (!codec) {

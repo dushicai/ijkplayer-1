@@ -1184,6 +1184,9 @@ static JNINativeMethod g_methods[] = {
     { "_setFrameAtTime",        "(Ljava/lang/String;JJII)V", (void *) IjkMediaPlayer_setFrameAtTime },
 };
 
+
+#include <libavcodec/jni.h> 
+
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 {
     JNIEnv* env = NULL;
@@ -1202,7 +1205,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
     ijkmp_global_init();
     ijkmp_global_set_inject_callback(inject_callback);
-
+    av_jni_set_java_vm(vm, NULL);
     FFmpegApi_global_init(env);
 
     return JNI_VERSION_1_4;
