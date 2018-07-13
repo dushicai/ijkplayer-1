@@ -2873,22 +2873,42 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
         case AV_CODEC_ID_HEVC : meidiacodec_name = (ffp->mediacodec_hevc == 2 || ffp->mediacodec_all_videos == 2) ? "hevc_mediacodec" : NULL;break;
         case AV_CODEC_ID_MPEG2VIDEO : meidiacodec_name = (ffp->mediacodec_mpeg2 == 2 || ffp->mediacodec_all_videos == 2) ? "mpeg2_mediacodec" : NULL;break;
         case AV_CODEC_ID_MPEG4 : meidiacodec_name = (ffp->mediacodec_mpeg4 == 2 || ffp->mediacodec_all_videos == 2) ? "mpeg4_mediacodec" : NULL;break;
-        case AV_CODEC_ID_VP8 : meidiacodec_name = (ffp->mediacodec_all_videos == 2) ? "vp8_mediacodec" : NULL;break;
-        case AV_CODEC_ID_VP9 : meidiacodec_name = (ffp->mediacodec_all_videos == 2) ? "vp9_mediacodec" : NULL;break;
+        case AV_CODEC_ID_VP8 : meidiacodec_name = (ffp->mediacodec_vp8 == 2 || ffp->mediacodec_all_videos == 2) ? "vp8_mediacodec" : NULL;break;
+        case AV_CODEC_ID_VP9 : meidiacodec_name = (ffp->mediacodec_vp9 == 2 || ffp->mediacodec_all_videos == 2) ? "vp9_mediacodec" : NULL;break;
         default : break;
     }
-    if(meidiacodec_name){
+
+    if(avctx->codec_type == AVMEDIA_TYPE_VIDEO){
+        av_log(NULL, AV_LOG_ERROR,"解码器配置: mediacodec_all_videos = %d\n", ffp->mediacodec_all_videos);
+        av_log(NULL, AV_LOG_ERROR,"解码器配置: mediacodec_avc = %d\n", ffp->mediacodec_avc);
+        av_log(NULL, AV_LOG_ERROR,"解码器配置: mediacodec_hevc = %d\n", ffp->mediacodec_hevc);
+        av_log(NULL, AV_LOG_ERROR,"解码器配置: mediacodec_mpeg2 = %d\n", ffp->mediacodec_mpeg2);
+        av_log(NULL, AV_LOG_ERROR,"解码器配置: mediacodec_mpeg4 = %d\n", ffp->mediacodec_mpeg4);
+        av_log(NULL, AV_LOG_ERROR,"解码器配置: mediacodec_vp8 = %d\n", ffp->mediacodec_vp8);
+        av_log(NULL, AV_LOG_ERROR,"解码器配置: mediacodec_vp9 = %d\n", ffp->mediacodec_vp9);
+    }
+
+    //是否尝试开启FFmpeg-MediaCodec
+    int ffmpeg_mediacodec_tryed = 0;
+
+retry:
+
+    if(meidiacodec_name && ffmpeg_mediacodec_tryed == 0){
         codec = avcodec_find_decoder_by_name(meidiacodec_name);
-        av_log(NULL, AV_LOG_ERROR,"启用ffmpeg硬件解码: %s %s\n", meidiacodec_name,codec ? "成功" : "失败");
+        av_log(NULL, AV_LOG_ERROR,"查找ffmpeg硬件解码: %s %s\n", meidiacodec_name,codec ? "成功" : "失败");
+        ffmpeg_mediacodec_tryed = (codec != NULL);
     }
     if(!codec){
         codec = avcodec_find_decoder(avctx->codec_id);
-        av_log(NULL, AV_LOG_ERROR,"启用ffmpeg软件解码: %d %s\n", (int)avctx->codec_id ,codec ? "成功" : "失败");
+        if(avctx->codec_type == AVMEDIA_TYPE_VIDEO){
+            av_log(NULL, AV_LOG_ERROR,"查找ffmpeg软件解码: %d %s\n", (int)avctx->codec_id ,codec ? "成功" : "失败");
+            ffmpeg_mediacodec_tryed = 0;
+        }
     }
 
     if (forced_codec_name){
         codec = avcodec_find_decoder_by_name(forced_codec_name);
-        av_log(NULL, AV_LOG_ERROR,"开启forced_codec_name: %s %s\n", forced_codec_name,codec ? "成功" : "失败");
+        av_log(NULL, AV_LOG_ERROR,"查找forced_codec_name: %s %s\n", forced_codec_name,codec ? "成功" : "失败");
     }
     if (!codec) {
         if (forced_codec_name){
@@ -2925,6 +2945,11 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
         av_dict_set(&opts, "refcounted_frames", "1", 0);
     if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
+        av_log(NULL, AV_LOG_ERROR,"打开ffmpeg解码器失败: %d %s\n", avctx->codec_id , meidiacodec_name ? meidiacodec_name : "soft decoder");
+        if(ffmpeg_mediacodec_tryed){
+            codec = NULL;
+            goto retry;
+        }
         goto fail;
     }
     if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {

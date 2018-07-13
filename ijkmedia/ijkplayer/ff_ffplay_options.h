@@ -186,7 +186,7 @@ static const AVOption ffp_context_options[] = {
     { "mediacodec-avc",                         "MediaCodec: enable H264(0:ffmpeg_soft,1:ijk_mediacodec,2:ffmpeg_mediacodec)",
         OPTION_OFFSET(mediacodec_avc),          OPTION_INT(2, 0, 2) },
     { "mediacodec-hevc",                        "MediaCodec: enable HEVC(0:ffmpeg_soft,1:ijk_mediacodec,2:ffmpeg_mediacodec)",
-        OPTION_OFFSET(mediacodec_hevc),         OPTION_INT(1, 0, 2) },
+        OPTION_OFFSET(mediacodec_hevc),         OPTION_INT(2, 0, 2) },
     { "mediacodec-mpeg2",                       "MediaCodec: enable MPEG2VIDEO(0:ffmpeg_soft,1:ijk_mediacodec,2:ffmpeg_mediacodec)",
         OPTION_OFFSET(mediacodec_mpeg2),        OPTION_INT(2, 0, 2) },
     { "mediacodec-mpeg4",                       "MediaCodec: enable MPEG4(0:ffmpeg_soft,1:ijk_mediacodec,2:ffmpeg_mediacodec)",

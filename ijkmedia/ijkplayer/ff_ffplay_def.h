@@ -819,7 +819,7 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     ffp->vtb_wait_async                 = 0; // option
 
     ffp->mediacodec_all_videos          = 0; // 默认ffmpeg软解解码
-    ffp->mediacodec_hevc                = 1; // 默认ijkplayer硬件解码
+    ffp->mediacodec_hevc                = 2; // 默认ffmpeg硬件解码
     ffp->mediacodec_avc                 = 2; // 默认ffmpeg硬件解码
     ffp->mediacodec_mpeg2               = 2; // 默认ffmpeg硬件解码
     ffp->mediacodec_mpeg4               = 2; // 默认ffmpeg硬件解码
