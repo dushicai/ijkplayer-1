@@ -169,7 +169,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     private int mVideoHeight;
     private int mVideoSarNum;
     private int mVideoSarDen;
-    private int mSurfaceIndex = 1;
+    private int mSurfaceIndex = 0;
     private String mDataSource;
 
     /**

@@ -48,6 +48,7 @@
 #include "libavutil/avassert.h"
 #include "libavutil/time.h"
 #include "libavformat/avformat.h"
+#include "libavcodec/mediacodec.h"
 #if CONFIG_AVDEVICE
 #include "libavdevice/avdevice.h"
 #endif
@@ -68,6 +69,7 @@
 #include "ff_cmdutils.h"
 #include "ff_fferror.h"
 #include "ff_ffpipeline.h"
+#include "android/pipeline/ffpipeline_android.h"
 #include "ff_ffpipenode.h"
 #include "ff_ffplay_debug.h"
 #include "ijkmeta.h"
@@ -2859,8 +2861,6 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
         goto fail;
     av_codec_set_pkt_timebase(avctx, ic->streams[stream_index]->time_base);
 
-    codec = avcodec_find_decoder(avctx->codec_id);
-
     switch (avctx->codec_type) {
         case AVMEDIA_TYPE_AUDIO   : is->last_audio_stream    = stream_index; forced_codec_name = ffp->audio_codec_name; break;
         case AVMEDIA_TYPE_SUBTITLE: is->last_subtitle_stream = stream_index; forced_codec_name = ffp->subtitle_codec_name; break;
@@ -2869,33 +2869,40 @@ static int stream_component_open(FFPlayer *ffp, int stream_index)
     }
     const char *meidiacodec_name = NULL;
     switch(avctx->codec_id){
-        case AV_CODEC_ID_H264 : meidiacodec_name = "h264_mediacodec";break;
-        case AV_CODEC_ID_HEVC : meidiacodec_name = "hevc_mediacodec";break;
-        case AV_CODEC_ID_MPEG2VIDEO : meidiacodec_name = "mpeg2_mediacodec";break;
-        case AV_CODEC_ID_MPEG4 : meidiacodec_name = "mpeg4_mediacodec";break;
-        case AV_CODEC_ID_VP8 : meidiacodec_name = "vp8_mediacodec";break;
-        case AV_CODEC_ID_VP9 : meidiacodec_name = "vp9_mediacodec";break;
+        case AV_CODEC_ID_H264 : meidiacodec_name = (ffp->mediacodec_avc == 2 || ffp->mediacodec_all_videos == 2) ? "h264_mediacodec" : NULL;break;
+        case AV_CODEC_ID_HEVC : meidiacodec_name = (ffp->mediacodec_hevc == 2 || ffp->mediacodec_all_videos == 2) ? "hevc_mediacodec" : NULL;break;
+        case AV_CODEC_ID_MPEG2VIDEO : meidiacodec_name = (ffp->mediacodec_mpeg2 == 2 || ffp->mediacodec_all_videos == 2) ? "mpeg2_mediacodec" : NULL;break;
+        case AV_CODEC_ID_MPEG4 : meidiacodec_name = (ffp->mediacodec_mpeg4 == 2 || ffp->mediacodec_all_videos == 2) ? "mpeg4_mediacodec" : NULL;break;
+        case AV_CODEC_ID_VP8 : meidiacodec_name = (ffp->mediacodec_all_videos == 2) ? "vp8_mediacodec" : NULL;break;
+        case AV_CODEC_ID_VP9 : meidiacodec_name = (ffp->mediacodec_all_videos == 2) ? "vp9_mediacodec" : NULL;break;
         default : break;
     }
     if(meidiacodec_name){
         codec = avcodec_find_decoder_by_name(meidiacodec_name);
-        av_log(NULL, AV_LOG_ERROR,"启用MediaCodec硬件解码: %s\n", meidiacodec_name);
+        av_log(NULL, AV_LOG_ERROR,"启用ffmpeg硬件解码: %s %s\n", meidiacodec_name,codec ? "成功" : "失败");
     }
-    if (forced_codec_name)
+    if(!codec){
+        codec = avcodec_find_decoder(avctx->codec_id);
+        av_log(NULL, AV_LOG_ERROR,"启用ffmpeg软件解码: %d %s\n", (int)avctx->codec_id ,codec ? "成功" : "失败");
+    }
+
+    if (forced_codec_name){
         codec = avcodec_find_decoder_by_name(forced_codec_name);
+        av_log(NULL, AV_LOG_ERROR,"开启forced_codec_name: %s %s\n", forced_codec_name,codec ? "成功" : "失败");
+    }
     if (!codec) {
-        if (forced_codec_name) av_log(NULL, AV_LOG_WARNING,
-                                      "No codec could be found with name '%s'\n", forced_codec_name);
-        else                   av_log(NULL, AV_LOG_WARNING,
-                                      "No codec could be found with id %d\n", avctx->codec_id);
+        if (forced_codec_name){
+            av_log(NULL, AV_LOG_WARNING, "No codec could be found with name '%s'\n", forced_codec_name);
+        }else{
+            av_log(NULL, AV_LOG_WARNING,"No codec could be found with id %d\n", avctx->codec_id);
+        }
         ret = AVERROR(EINVAL);
         goto fail;
     }
 
     avctx->codec_id = codec->id;
     if(stream_lowres > av_codec_get_max_lowres(codec)){
-        av_log(avctx, AV_LOG_WARNING, "The maximum value for lowres supported by the decoder is %d\n",
-                av_codec_get_max_lowres(codec));
+        av_log(avctx, AV_LOG_WARNING, "The maximum value for lowres supported by the decoder is %d\n",av_codec_get_max_lowres(codec));
         stream_lowres = av_codec_get_max_lowres(codec);
     }
     av_codec_set_lowres(avctx, stream_lowres);
@@ -3765,7 +3772,11 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
 
     if (ffp->async_init_decoder && !ffp->video_disable && ffp->video_mime_type && strlen(ffp->video_mime_type) > 0
                     && ffp->mediacodec_default_name && strlen(ffp->mediacodec_default_name) > 0) {
-        if (ffp->mediacodec_all_videos || ffp->mediacodec_avc || ffp->mediacodec_hevc || ffp->mediacodec_mpeg2) {
+        if (ffp->mediacodec_all_videos == 1 ||
+            ffp->mediacodec_avc == 1 ||
+            ffp->mediacodec_hevc == 1 ||
+            ffp->mediacodec_mpeg2 == 1 ||
+            ffp->mediacodec_mpeg4 == 1) {
             decoder_init(&is->viddec, NULL, &is->videoq, is->continue_read_thread);
             ffp->node_vdec = ffpipeline_init_video_decoder(ffp->pipeline, ffp);
         }

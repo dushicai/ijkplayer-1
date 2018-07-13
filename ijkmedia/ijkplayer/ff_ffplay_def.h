@@ -675,6 +675,8 @@ typedef struct FFPlayer {
     int mediacodec_hevc;
     int mediacodec_mpeg2;
     int mediacodec_mpeg4;
+    int mediacodec_vp8;
+    int mediacodec_vp9;
     int mediacodec_handle_resolution_change;
     int mediacodec_auto_rotate;
 
@@ -816,10 +818,14 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     ffp->vtb_handle_resolution_change   = 0; // option
     ffp->vtb_wait_async                 = 0; // option
 
-    ffp->mediacodec_all_videos          = 0; // option
-    ffp->mediacodec_avc                 = 0; // option
-    ffp->mediacodec_hevc                = 0; // option
-    ffp->mediacodec_mpeg2               = 0; // option
+    ffp->mediacodec_all_videos          = 0; // 默认ffmpeg软解解码
+    ffp->mediacodec_hevc                = 1; // 默认ijkplayer硬件解码
+    ffp->mediacodec_avc                 = 2; // 默认ffmpeg硬件解码
+    ffp->mediacodec_mpeg2               = 2; // 默认ffmpeg硬件解码
+    ffp->mediacodec_mpeg4               = 2; // 默认ffmpeg硬件解码
+    ffp->mediacodec_vp8                 = 2; // 默认ffmpeg硬件解码
+    ffp->mediacodec_vp9                 = 2; // 默认ffmpeg硬件解码
+
     ffp->mediacodec_handle_resolution_change = 0; // option
     ffp->mediacodec_auto_rotate         = 0; // option
 

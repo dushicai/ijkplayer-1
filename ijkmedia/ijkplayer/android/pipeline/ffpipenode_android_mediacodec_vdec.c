@@ -1708,7 +1708,7 @@ int ffpipenode_config_from_android_mediacodec(FFPlayer *ffp, IJKFF_Pipeline *pip
 
     switch (opaque->codecpar->codec_id) {
     case AV_CODEC_ID_H264:
-        if (!ffp->mediacodec_avc && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_avc != 1  && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec: AVC/H264 is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
@@ -1761,7 +1761,7 @@ int ffpipenode_config_from_android_mediacodec(FFPlayer *ffp, IJKFF_Pipeline *pip
         opaque->mcc.level   = opaque->codecpar->level;
         break;
     case AV_CODEC_ID_HEVC:
-        if (!ffp->mediacodec_hevc && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_hevc != 1 && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec/HEVC is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
@@ -1770,7 +1770,7 @@ int ffpipenode_config_from_android_mediacodec(FFPlayer *ffp, IJKFF_Pipeline *pip
         opaque->mcc.level   = opaque->codecpar->level;
         break;
     case AV_CODEC_ID_MPEG2VIDEO:
-        if (!ffp->mediacodec_mpeg2 && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_mpeg2 != 1 && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec/MPEG2VIDEO is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
@@ -1779,7 +1779,7 @@ int ffpipenode_config_from_android_mediacodec(FFPlayer *ffp, IJKFF_Pipeline *pip
         opaque->mcc.level   = opaque->codecpar->level;
         break;
     case AV_CODEC_ID_MPEG4:
-        if (!ffp->mediacodec_mpeg4 && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_mpeg4 != 1 && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec/MPEG4 is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
@@ -1942,7 +1942,7 @@ IJKFF_Pipenode *ffpipenode_create_video_decoder_from_android_mediacodec(FFPlayer
 
     switch (opaque->codecpar->codec_id) {
     case AV_CODEC_ID_H264:
-        if (!ffp->mediacodec_avc && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_avc != 1 && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec: AVC/H264 is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
@@ -1995,7 +1995,7 @@ IJKFF_Pipenode *ffpipenode_create_video_decoder_from_android_mediacodec(FFPlayer
         opaque->mcc.level   = opaque->codecpar->level;
         break;
     case AV_CODEC_ID_HEVC:
-        if (!ffp->mediacodec_hevc && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_hevc != 1 && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec/HEVC is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
@@ -2004,7 +2004,7 @@ IJKFF_Pipenode *ffpipenode_create_video_decoder_from_android_mediacodec(FFPlayer
         opaque->mcc.level   = opaque->codecpar->level;
         break;
     case AV_CODEC_ID_MPEG2VIDEO:
-        if (!ffp->mediacodec_mpeg2 && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_mpeg2 != 1 && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec/MPEG2VIDEO is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
@@ -2013,7 +2013,7 @@ IJKFF_Pipenode *ffpipenode_create_video_decoder_from_android_mediacodec(FFPlayer
         opaque->mcc.level   = opaque->codecpar->level;
         break;
     case AV_CODEC_ID_MPEG4:
-        if (!ffp->mediacodec_mpeg4 && !ffp->mediacodec_all_videos) {
+        if (ffp->mediacodec_mpeg4 != 1 && ffp->mediacodec_all_videos != 1) {
             ALOGE("%s: MediaCodec/MPEG4 is disabled. codec_id:%d \n", __func__, opaque->codecpar->codec_id);
             goto fail;
         }
