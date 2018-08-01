@@ -4,11 +4,17 @@
 基于ijkplayer的定制化修改：
 
 1、解决ijkplayer切换音轨失步、爆音问题
+
 2、支持双画面同时渲染
+
 3、支持切换左右声道都有声音输出
+
 4、支持声道切换
+
 5、支持FFmpeg硬件解码
+
 6、支持配置FFmpeg-soft、ijk-MediaCodec、FFmpeg-MediaCodec配置修改
+
 7、默认采用FFmpeg-MediaCodec方案，FFmpeg硬件失败重试FFmpeg-soft方案
 
  Platform | Build Status
