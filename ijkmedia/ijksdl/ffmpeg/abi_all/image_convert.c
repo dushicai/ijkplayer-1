@@ -32,6 +32,11 @@ int ijk_image_convert(int width, int height,
 {
 #if defined(__ANDROID__)
     switch (src_format) {
+        case AV_PIX_FMT_NV12:{
+            const uint8_t *tmp = src_data[1];
+            src_data[1] = src_data[2];
+            src_data[2] = tmp;
+        }
         case AV_PIX_FMT_YUV420P:
         case AV_PIX_FMT_YUVJ420P: // FIXME: 9 not equal to AV_PIX_FMT_YUV420P, but a workaround
             switch (dst_format) {
