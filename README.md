@@ -17,6 +17,8 @@
 
 7、默认采用FFmpeg-MediaCodec方案，FFmpeg硬件失败重试FFmpeg-soft方案
 
+8、修复FFmpeg解码时NV12渲染颜色错乱的BUG
+
  Platform | Build Status
  -------- | ------------
  Android | [![Build Status](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-android.svg?branch=master)](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-android)
