@@ -2703,8 +2703,8 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
         stream += len1;
         is->audio_buf_index += len1;
     }
-    
-    
+
+
     if(is->audio_tgt.channels == 2 && ffp->channel_config != 0){
         //双声道并且需要制定输出单一声道
         int sample_size =  av_get_bytes_per_sample(is->audio_tgt.fmt);
