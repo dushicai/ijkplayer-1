@@ -1075,7 +1075,7 @@ public class IjkVideoView extends FrameLayout implements MediaController.MediaPl
                     ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "skip_loop_filter", 48);
                     ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "threads", 4);
                     //todo(xzl) 设置文件解密密钥
-                    //ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "mask_str", "123456");
+                    ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "mask_str", "osvyBFIL");
                     ijkMediaPlayer.setPitch(1.0f);
                 }
                 mediaPlayer = ijkMediaPlayer;
