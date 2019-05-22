@@ -28,37 +28,62 @@
 
 int ijk_image_convert(int width, int height,
     enum AVPixelFormat dst_format, uint8_t **dst_data, int *dst_linesize,
-    enum AVPixelFormat src_format, const uint8_t **src_data_tmp, const int *src_linesize_tmp)
+    enum AVPixelFormat src_format, const uint8_t **src_data, const int *src_linesize)
 {
-    const uint8_t *src_data[3] = {src_data_tmp[0],src_data_tmp[1],src_data_tmp[2]};
-    int src_linesize[3] = {src_linesize_tmp[0],src_linesize_tmp[1],src_linesize_tmp[2]};
-
+    int ret = -2;
 #if defined(__ANDROID__)
     switch (src_format) {
         case AV_PIX_FMT_NV12:{
-            src_data[2] = src_data_tmp[1];
-            src_data[1] = src_data_tmp[2];
-
-            src_linesize[2] = src_linesize_tmp[1];
-            src_linesize[1] = src_linesize_tmp[2];
+            switch (dst_format) {
+            case AV_PIX_FMT_RGB565:
+                ret = NV12ToRGB565(
+                    src_data[0], src_linesize[0],
+                    src_data[1], src_linesize[1],
+                    dst_data[0], dst_linesize[0],
+                    width, height);
+                break;
+            case AV_PIX_FMT_0BGR32:
+                ret = NV12ToARGB(
+                    src_data[0], src_linesize[0],
+                    src_data[1], src_linesize[1],
+                    dst_data[0], dst_linesize[0],
+                    width, height);
+                if(ret == 0){
+                    ret = ARGBToABGR(dst_data[0], dst_linesize[0],dst_data[0], dst_linesize[0],width, height);
+                } 
+                break;       
+            default:
+                break;
+            }
+            break;
         }
         case AV_PIX_FMT_YUV420P:
         case AV_PIX_FMT_YUVJ420P: // FIXME: 9 not equal to AV_PIX_FMT_YUV420P, but a workaround
             switch (dst_format) {
             case AV_PIX_FMT_RGB565:
-                return I420ToRGB565(
+                ret = I420ToRGB565(
                     src_data[0], src_linesize[0],
                     src_data[1], src_linesize[1],
                     src_data[2], src_linesize[2],
                     dst_data[0], dst_linesize[0],
                     width, height);
+                break;
             case AV_PIX_FMT_0BGR32:
-                return I420ToABGR(
+                ret = I420ToABGR(
                     src_data[0], src_linesize[0],
                     src_data[1], src_linesize[1],
                     src_data[2], src_linesize[2],
                     dst_data[0], dst_linesize[0],
                     width, height);
+                break;
+            case AV_PIX_FMT_RGB24 :
+                ret = I420ToRGB24(
+                    src_data[0], src_linesize[0],
+                    src_data[1], src_linesize[1],
+                    src_data[2], src_linesize[2],
+                    dst_data[0], dst_linesize[0],
+                    width, height); 
+                break;        
             default:
                 break;
             }
@@ -67,6 +92,24 @@ int ijk_image_convert(int width, int height,
             break;
     }
 #endif
+
+    if(ret == 0){
+        return 0;
+    }
+
+    if(ret == -2){
+        ALOGE("ijk_image_convert can not convert %s(%d) -> %s(%d)", 
+                    av_get_pix_fmt_name(src_format),
+                    (int)src_format,
+                    av_get_pix_fmt_name(dst_format),
+                    (int)dst_format);
+    }else if(ret == -1){
+        ALOGE("ijk_image_convert convert failed %s(%d) -> %s(%d)", 
+                    av_get_pix_fmt_name(src_format),
+                    (int)src_format,
+                    av_get_pix_fmt_name(dst_format),
+                    (int)dst_format);
+    }
     return -1;
 }
 
