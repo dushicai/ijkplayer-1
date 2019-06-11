@@ -268,7 +268,10 @@ static int func_fill_frame(SDL_VoutOverlay *overlay, const AVFrame *frame)
 
         if (!opaque->no_neon_warned) {
             opaque->no_neon_warned = 1;
-            ALOGE("non-neon image convert %s -> %s", av_get_pix_fmt_name(frame->format), av_get_pix_fmt_name(dst_format));
+            ALOGE("non-neon image convert %s(%d) -> %s(%d)", av_get_pix_fmt_name(frame->format),
+             (int)frame->format,
+             av_get_pix_fmt_name(dst_format),
+             (int)dst_format);
         }
     }
     
