@@ -19,6 +19,10 @@
 
 8、修复FFmpeg解码时NV12渲染颜色错乱的BUG
 
+9、修复DNS解析相关的bug
+
+10、添加文件加密播放功能
+
  Platform | Build Status
  -------- | ------------
  Android | [![Build Status](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-android.svg?branch=master)](https://travis-ci.org/Bilibili/ci-ijk-ffmpeg-android)
